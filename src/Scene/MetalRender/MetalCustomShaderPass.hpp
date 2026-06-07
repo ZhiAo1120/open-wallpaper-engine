@@ -38,7 +38,7 @@ public:
         id<MTLTexture> outputTexture = nil;
 
         // Pipeline
-        MTLClearValue clearColor;
+        double clearColor[4]; // Use double array instead of MTLClearValue
         bool blending = false;
         id<MTLRenderPipelineState> pipelineState = nil;
         id<MTLDepthStencilState> depthStencilState = nil;
