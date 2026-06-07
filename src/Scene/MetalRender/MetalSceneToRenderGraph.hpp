@@ -3,7 +3,7 @@
 #include "MetalCustomShaderPass.hpp"
 #include "MetalCopyPass.hpp"
 #include "Scene/Scene.h"
-#include "Scene/RenderGraph/RenderGraph.hpp"
+#include "RenderGraph/RenderGraph.hpp"
 #include <memory>
 #include <vector>
 

@@ -24,7 +24,7 @@ struct MetalPassBatch {
     uint32_t sampleCount = 1;
 
     /// Clear value for the render target.
-    MTLClearValue clearValue;
+    double clearValue[4]; // Use double array instead of MTLClearValue
 
     /// Whether to clear the render target on first use.
     bool clearOnFirstUse = false;
