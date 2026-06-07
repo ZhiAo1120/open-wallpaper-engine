@@ -40,16 +40,6 @@ public:
     /// Returns true if the device supports argument buffers.
     bool supportsArgumentBuffers() const;
 
-    /// Returns the maximum texture width/height.
-    uint32_t maxTextureWidth() const;
-    uint32_t maxTextureHeight() const;
-
-    /// Returns the max threadgroup memory length.
-    uint32_t maxThreadgroupMemoryLength() const;
-
-    /// Returns the max threadgroups per dispatch grid width.
-    uint32_t maxThreadsPerThreadgroup() const;
-
     /// Waits for all pending GPU work to complete.
     void waitIdle();
 

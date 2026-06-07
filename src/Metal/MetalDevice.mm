@@ -71,31 +71,6 @@ bool MetalDevice::supportsArgumentBuffers() const {
            [m_device supportsFamily:MTLGPUFamilyCommon1];
 }
 
-uint32_t MetalDevice::maxTextureWidth() const {
-    if (m_device == nil) return 0;
-    // Use valueForKey: to access the property dynamically
-    NSNumber *value = [m_device valueForKey:@"maxTextureWidth"];
-    return [value unsignedIntValue];
-}
-
-uint32_t MetalDevice::maxTextureHeight() const {
-    if (m_device == nil) return 0;
-    // Use valueForKey: to access the property dynamically
-    NSNumber *value = [m_device valueForKey:@"maxTextureHeight"];
-    return [value unsignedIntValue];
-}
-
-uint32_t MetalDevice::maxThreadgroupMemoryLength() const {
-    if (m_device == nil) return 0;
-    return static_cast<uint32_t>([m_device maxThreadgroupMemoryLength]);
-}
-
-uint32_t MetalDevice::maxThreadsPerThreadgroup() const {
-    if (m_device == nil) return 0;
-    MTLSize size = [m_device maxThreadsPerThreadgroup];
-    return static_cast<uint32_t>(size.width * size.height * size.depth);
-}
-
 void MetalDevice::waitIdle() {
     if (m_device == nil) return;
 
