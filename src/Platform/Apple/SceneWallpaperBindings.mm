@@ -223,6 +223,39 @@ extern "C" int owe_scene_wallpaper_init_metal_vulkan(
     return 0;
 }
 
+extern "C" int owe_scene_wallpaper_init_metal(
+    owe_scene_wallpaper* scene,
+    void* metal_layer,
+    uint32_t width,
+    uint32_t height,
+    uint32_t render_width,
+    uint32_t render_height,
+    double display_scale_factor,
+    bool prefer_high_performance)
+{
+    clear_last_error();
+    if (!valid_scene(scene)) return finish_with_error("scene must not be null");
+    if (metal_layer == nullptr) return finish_with_error("metal_layer must not be null");
+
+    std::string error;
+    if (!validate_dimensions(width, height, &error)) return finish_with_error(error);
+    if (!validate_render_resolution(render_width, render_height, &error)) {
+        return finish_with_error(error);
+    }
+
+    // TODO: Implement Metal initialization
+    // This will be implemented when SceneWallpaper is updated to support Metal
+    // For now, fall back to Vulkan initialization
+    scene->scene.initVulkan(make_render_init_info(
+        metal_layer,
+        width,
+        height,
+        render_width,
+        render_height,
+        display_scale_factor));
+    return 0;
+}
+
 extern "C" int owe_scene_wallpaper_begin_surface_reconfigure(owe_scene_wallpaper* scene)
 {
     clear_last_error();

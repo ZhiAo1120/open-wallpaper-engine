@@ -42,6 +42,28 @@ int owe_scene_wallpaper_init_metal_vulkan(owe_scene_wallpaper* scene, void* meta
                                           uint32_t render_height, double display_scale_factor);
 
 /*
+ * Initializes the Metal renderer with a CAMetalLayer-backed surface.
+ *
+ * This provides native Metal rendering instead of Vulkan-over-MoltenVK.
+ * Render width/height may be 0/0 to use the output dimensions. A single zero is
+ * invalid and rejected by the implementation.
+ *
+ * Parameters:
+ *   scene - The scene wallpaper instance.
+ *   metal_layer - Pointer to CAMetalLayer.
+ *   width - Surface width in pixels.
+ *   height - Surface height in pixels.
+ *   render_width - Render target width (0 for auto).
+ *   render_height - Render target height (0 for auto).
+ *   display_scale_factor - Display scale factor (e.g., 2.0 for Retina).
+ *   prefer_high_performance - Whether to prefer high-performance GPU.
+ */
+int owe_scene_wallpaper_init_metal(owe_scene_wallpaper* scene, void* metal_layer,
+                                   uint32_t width, uint32_t height, uint32_t render_width,
+                                   uint32_t render_height, double display_scale_factor,
+                                   bool prefer_high_performance);
+
+/*
  * Pauses rendering and releases the Vulkan surface + swapchain. The scene
  * graph, compiled shaders, render-graph non-present passes, textures, audio,
  * and runtime state remain loaded. After this returns, the caller may safely
