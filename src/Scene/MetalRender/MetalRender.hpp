@@ -7,8 +7,8 @@
 #include "../../Metal/MetalStagingBuffer.hpp"
 #include "../../Metal/MetalShader.hpp"
 #include "../../Metal/MetalResources.hpp"
-#include "../Scene.h"
-#include "../RenderGraph/RenderGraph.hpp"
+#include "Scene/Scene.h"
+#include "RenderGraph/RenderGraph.hpp"
 #include <memory>
 #include <vector>
 
