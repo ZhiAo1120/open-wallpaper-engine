@@ -1,7 +1,7 @@
 #pragma once
 
-#include <Metal/Metal.h>
-#include <QuartzCore/CAMetalLayer.h>
+#import <Metal/Metal.h>
+#import <QuartzCore/CAMetalLayer.h>
 #include <string>
 #include <vector>
 #include <cstdint>
