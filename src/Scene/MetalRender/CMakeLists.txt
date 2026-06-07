@@ -4,12 +4,13 @@ endif()
 
 add_library(
   wpMetalRender STATIC
-  MetalCustomShaderPass.cpp
-  MetalCopyPass.cpp
-  MetalPrePass.cpp
-  MetalFinPass.cpp
-  MetalPassBatch.cpp
-  MetalSceneToRenderGraph.cpp
+  MetalCustomShaderPass.mm
+  MetalCopyPass.mm
+  MetalPrePass.mm
+  MetalFinPass.mm
+  MetalPassBatch.mm
+  MetalSceneToRenderGraph.mm
+  MetalRender.mm
 )
 
 target_include_directories(wpMetalRender PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
