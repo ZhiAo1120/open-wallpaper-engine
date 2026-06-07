@@ -105,6 +105,7 @@ set(InteralLib
     wpScene
     wpVulkan
     wpMetal
+    wpMetalRender
     wpRGraph
     wpParticle
     wpTimer)

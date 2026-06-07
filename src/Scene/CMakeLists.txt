@@ -22,3 +22,7 @@ PRIVATE
 target_include_directories(${LIB_NAME} PUBLIC include PRIVATE include/Scene)
 target_compile_options(${LIB_NAME} PRIVATE ${warn_opts})
 set_property(TARGET ${LIB_NAME} PROPERTY POSITION_INDEPENDENT_CODE ON)
+
+if(APPLE)
+    add_subdirectory(MetalRender)
+endif()
