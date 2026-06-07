@@ -199,8 +199,8 @@ void MetalRender::createFrameResources() {
     m_frameResources.commandBuffer = nil;
     m_frameResources.renderEncoder = nil;
     m_frameResources.blitEncoder = nil;
-    m_frameResources.viewport = MTLViewportMake(0, 0, m_config.width, m_config.height, 0.0, 1.0);
-    m_frameResources.scissor = MTLScissorRectMake(0, 0, m_config.width, m_config.height);
+    m_frameResources.viewport = {0, 0, static_cast<double>(m_config.width), static_cast<double>(m_config.height), 0.0, 1.0};
+    m_frameResources.scissor = {0, 0, m_config.width, m_config.height};
     m_frameResources.horizontalFlip = m_config.horizontalFlip;
     m_frameResources.frameIndex = 0;
 }
