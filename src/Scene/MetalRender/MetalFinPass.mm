@@ -76,9 +76,84 @@ void MetalFinPass::destroy(MetalDevice& device, MetalRenderingResources& resourc
 void MetalFinPass::createPipeline(MetalDevice& device) {
     if (device.device() == nil) return;
 
-    // TODO: Create pipeline with vertex and fragment shaders
-    // For now, this is a placeholder
-    // In production, you would compile the fullscreen quad shaders
+    // MSL source for fullscreen quad vertex shader
+    NSString* vertexSource = @""
+        "#include <metal_stdlib>\n"
+        "using namespace metal;\n"
+        "struct VertexIn {\n"
+        "    float2 position [[attribute(0)]];\n"
+        "    float2 texCoord [[attribute(1)]];\n"
+        "};\n"
+        "struct VertexOut {\n"
+        "    float4 position [[position]];\n"
+        "    float2 texCoord;\n"
+        "};\n"
+        "vertex VertexOut vertexShader(const VertexIn in [[stage_in]]) {\n"
+        "    VertexOut out;\n"
+        "    out.position = float4(in.position, 0.0, 1.0);\n"
+        "    out.texCoord = in.texCoord;\n"
+        "    return out;\n"
+        "}\n";
+
+    // MSL source for fullscreen quad fragment shader
+    NSString* fragmentSource = @""
+        "#include <metal_stdlib>\n"
+        "using namespace metal;\n"
+        "struct VertexOut {\n"
+        "    float4 position [[position]];\n"
+        "    float2 texCoord;\n"
+        "};\n"
+        "fragment float4 fragmentShader(VertexOut in [[stage_in]],\n"
+        "                               texture2d<float> tex [[texture(0)]],\n"
+        "                               sampler s [[sampler(0)]]) {\n"
+        "    return tex.sample(s, in.texCoord);\n"
+        "}\n";
+
+    // Compile vertex shader
+    NSError* error = nil;
+    MTLCompileOptions* options = [[MTLCompileOptions alloc] init];
+    options.languageVersion = MTLLanguageVersion2_0;
+
+    id<MTLLibrary> vertexLib = [device.device() newLibraryWithSource:vertexSource
+                                                            options:options
+                                                              error:&error];
+    if (vertexLib == nil) {
+        NSLog(@"Metal vertex shader compilation failed: %@", [error localizedDescription]);
+        return;
+    }
+
+    id<MTLFunction> vertexFunc = [vertexLib newFunctionWithName:@"vertexShader"];
+    if (vertexFunc == nil) {
+        return;
+    }
+
+    // Compile fragment shader
+    id<MTLLibrary> fragmentLib = [device.device() newLibraryWithSource:fragmentSource
+                                                             options:options
+                                                               error:&error];
+    if (fragmentLib == nil) {
+        NSLog(@"Metal fragment shader compilation failed: %@", [error localizedDescription]);
+        return;
+    }
+
+    id<MTLFunction> fragmentFunc = [fragmentLib newFunctionWithName:@"fragmentShader"];
+    if (fragmentFunc == nil) {
+        return;
+    }
+
+    // Create pipeline descriptor
+    MTLRenderPipelineDescriptor* pipelineDesc = [[MTLRenderPipelineDescriptor alloc] init];
+    pipelineDesc.vertexFunction = vertexFunc;
+    pipelineDesc.fragmentFunction = fragmentFunc;
+    pipelineDesc.colorAttachments[0].pixelFormat = MTLPixelFormatBGRA8Unorm;
+
+    // Create pipeline state
+    error = nil;
+    m_pipelineState = [device.device() newRenderPipelineStateWithDescriptor:pipelineDesc
+                                                                  error:&error];
+    if (m_pipelineState == nil) {
+        NSLog(@"Metal pipeline creation failed: %@", [error localizedDescription]);
+    }
 }
 
 void MetalFinPass::createVertexBuffer(MetalDevice& device) {
