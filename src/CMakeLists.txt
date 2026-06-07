@@ -31,6 +31,7 @@ if(APPLE)
   find_library(FOUNDATION_FRAMEWORK Foundation REQUIRED)
   find_library(IOSURFACE_FRAMEWORK IOSurface REQUIRED)
   find_library(METAL_FRAMEWORK Metal REQUIRED)
+  find_library(QUARTZCORE_FRAMEWORK QuartzCore REQUIRED)
   find_library(VIDEOTOOLBOX_FRAMEWORK VideoToolbox REQUIRED)
 endif()
 
@@ -53,6 +54,7 @@ add_subdirectory(Audio)
 add_subdirectory(Scene)
 add_subdirectory(Looper)
 add_subdirectory(Vulkan)
+add_subdirectory(Metal)
 add_subdirectory(Scene/Timer)
 add_subdirectory(Scene/Particle)
 add_subdirectory(Scene/VulkanRender)
@@ -102,6 +104,7 @@ set(InteralLib
     wpFs
     wpScene
     wpVulkan
+    wpMetal
     wpRGraph
     wpParticle
     wpTimer)
