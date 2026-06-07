@@ -4,7 +4,7 @@
 #include "../../Metal/MetalPipeline.hpp"
 #include "../../Metal/MetalTextureCache.hpp"
 #include "../../Metal/MetalStagingBuffer.hpp"
-#include "../Scene.h"
+#include "Scene/Scene.h"
 
 namespace wallpaper
 {

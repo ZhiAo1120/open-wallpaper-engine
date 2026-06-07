@@ -1,7 +1,7 @@
 #pragma once
 
 #include "MetalPass.hpp"
-#include "../Scene.h"
+#include "Scene/Scene.h"
 
 namespace wallpaper
 {

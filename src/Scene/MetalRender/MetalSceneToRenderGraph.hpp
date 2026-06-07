@@ -2,8 +2,8 @@
 
 #include "MetalCustomShaderPass.hpp"
 #include "MetalCopyPass.hpp"
-#include "../Scene.h"
-#include "../RenderGraph/RenderGraph.hpp"
+#include "Scene/Scene.h"
+#include "Scene/RenderGraph/RenderGraph.hpp"
 #include <memory>
 #include <vector>
 

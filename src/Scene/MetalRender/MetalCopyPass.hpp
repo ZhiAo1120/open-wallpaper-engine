@@ -2,7 +2,7 @@
 
 #include "MetalPass.hpp"
 #include "../../Metal/MetalTextureCache.hpp"
-#include "../Scene.h"
+#include "Scene/Scene.h"
 #include <string>
 
 namespace wallpaper

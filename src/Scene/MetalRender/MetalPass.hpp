@@ -2,7 +2,7 @@
 
 #include "../../Metal/MetalDevice.hpp"
 #include "../../Metal/MetalResources.hpp"
-#include "../Scene.h"
+#include "Scene/Scene.h"
 #include <memory>
 #include <vector>
 
