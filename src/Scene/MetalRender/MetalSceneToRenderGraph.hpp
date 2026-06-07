@@ -1,7 +1,6 @@
 #pragma once
 
-#include "MetalCustomShaderPass.hpp"
-#include "MetalCopyPass.hpp"
+#include "MetalPass.hpp"
 #include "Scene/Scene.h"
 #include "RenderGraph/RenderGraph.hpp"
 #include <memory>
@@ -21,23 +20,6 @@ public:
     static void convert(
         Scene& scene,
         rg::RenderGraph& renderGraph);
-
-private:
-    /// Processes a scene node and its children.
-    static void processNode(
-        SceneNode* node,
-        Scene& scene,
-        rg::RenderGraph& renderGraph);
-
-    /// Creates a custom shader pass from a scene object.
-    static std::unique_ptr<MetalCustomShaderPass> createCustomShaderPass(
-        SceneObject* object,
-        Scene& scene);
-
-    /// Creates a copy pass from a scene object.
-    static std::unique_ptr<MetalCopyPass> createCopyPass(
-        SceneObject* object,
-        Scene& scene);
 };
 
 } // namespace metal
