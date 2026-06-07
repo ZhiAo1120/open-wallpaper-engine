@@ -462,6 +462,7 @@ public:
     enum class CMD
     {
         CMD_INIT_VULKAN,
+        CMD_INIT_METAL,
         CMD_SET_SCENE,
         CMD_SET_FILLMODE,
         CMD_SET_SCALINGMODE,
@@ -505,6 +506,7 @@ public:
                 CASE_CMD(SET_SCENE);
                 CASE_CMD(SET_SPEED);
                 CASE_CMD(INIT_VULKAN);
+                CASE_CMD(INIT_METAL);
                 CASE_CMD(BEGIN_SURFACE_RECONFIGURE);
                 CASE_CMD(FINISH_SURFACE_RECONFIGURE);
             default: break;
@@ -757,6 +759,22 @@ private:
             main_handler.sendCmdLoadScene();
         }
     }
+    MHANDLER_CMD(INIT_METAL) {
+        // For now, fall back to Vulkan initialization
+        // TODO: Implement native Metal rendering
+        std::shared_ptr<RenderInitInfo> info;
+        if (msg->findObject("info", &info)) {
+            m_render->init(*info);
+            m_render->SetWallpaperScalingMode(m_scalingmode);
+            m_render->SetWallpaperScalingFactor(m_scalingfactor);
+            m_render->SetWallpaperHorizontalFlip(m_horizontal_flip);
+            m_render->SetVideoPlaybackRate(m_speed);
+            m_render->SetVideoPlaybackPaused(! frame_timer.Running());
+
+            // inited, callback to load scene
+            main_handler.sendCmdLoadScene();
+        }
+    }
     MHANDLER_CMD(BEGIN_SURFACE_RECONFIGURE) {
         std::shared_ptr<std::promise<bool>> promise;
         if (! msg->findObject("promise", &promise)) {
@@ -842,6 +860,15 @@ void SceneWallpaper::initVulkan(const RenderInitInfo& info) {
     std::shared_ptr<RenderInitInfo> sp_info = std::make_shared<RenderInitInfo>(info);
     auto                            msg =
         CreateMsgWithCmd(m_main_handler->renderHandler(), RenderHandler::CMD::CMD_INIT_VULKAN);
+    msg->setObject("info", sp_info);
+    msg->post();
+}
+
+void SceneWallpaper::initMetal(const RenderInitInfo& info) {
+    m_offscreen                             = info.offscreen;
+    std::shared_ptr<RenderInitInfo> sp_info = std::make_shared<RenderInitInfo>(info);
+    auto                            msg =
+        CreateMsgWithCmd(m_main_handler->renderHandler(), RenderHandler::CMD::CMD_INIT_METAL);
     msg->setObject("info", sp_info);
     msg->post();
 }

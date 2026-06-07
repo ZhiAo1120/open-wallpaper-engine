@@ -243,10 +243,10 @@ extern "C" int owe_scene_wallpaper_init_metal(
         return finish_with_error(error);
     }
 
-    // TODO: Implement Metal initialization
-    // This will be implemented when SceneWallpaper is updated to support Metal
-    // For now, fall back to Vulkan initialization
-    scene->scene.initVulkan(make_render_init_info(
+    // Use Metal initialization path
+    // For now, this falls back to Vulkan, but the architecture is in place
+    // for native Metal rendering
+    scene->scene.initMetal(make_render_init_info(
         metal_layer,
         width,
         height,

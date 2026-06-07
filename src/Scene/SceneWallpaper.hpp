@@ -57,6 +57,7 @@ public:
     void shutdown();
 
     void initVulkan(const RenderInitInfo&);
+    void initMetal(const RenderInitInfo&);
     void applyConfig(const SceneWallpaperConfig&);
 
     /// Pauses rendering and releases the Vulkan surface + swapchain on the
