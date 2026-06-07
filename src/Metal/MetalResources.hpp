@@ -51,7 +51,7 @@ struct MetalRenderPassAttachment {
     id<MTLTexture> texture;
     MTLLoadAction loadAction;
     MTLStoreAction storeAction;
-    MTLClearValue clearColor;
+    double clearColor[4]; // Use double array instead of MTLClearValue
 };
 
 /// Metal render pipeline state configuration.

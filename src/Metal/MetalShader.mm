@@ -26,7 +26,9 @@ bool MetalShader::init(id<MTLDevice> device) {
     if (m_defaultLibrary == nil) {
         // Try creating an empty library as fallback
         NSError* error = nil;
+        MTLCompileOptions* options = [[MTLCompileOptions alloc] init];
         m_defaultLibrary = [m_device newLibraryWithSource:@""
+                                                 options:options
                                                    error:&error];
         if (m_defaultLibrary == nil) {
             return false;
