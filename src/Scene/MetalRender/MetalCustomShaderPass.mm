@@ -1,5 +1,6 @@
 #include "MetalCustomShaderPass.hpp"
 #include "../../Metal/MetalPipeline.hpp"
+#include "../../Metal/MetalShader.hpp"
 #include <algorithm>
 
 namespace wallpaper
@@ -84,10 +85,16 @@ void MetalCustomShaderPass::createPipeline(MetalDevice& device) {
     config.blendingEnabled = m_desc.blending;
     config.colorAttachmentFormat = MTLPixelFormatBGRA8Unorm;
 
-    // TODO: Set vertex and fragment functions from shader compilation
+    // TODO: Get vertex and fragment functions from shader compilation
+    // This would use MetalShader::compile or compileFromHLSL
     // For now, this is a placeholder
-    // config.vertexFunction = ...;
-    // config.fragmentFunction = ...;
+    // MetalShader shader;
+    // shader.init(device.device());
+    // auto program = shader.compileFromHLSL(vertexSource, fragmentSource, cacheKey);
+    // if (program) {
+    //     config.vertexFunction = program->vertexFunction;
+    //     config.fragmentFunction = program->fragmentFunction;
+    // }
 
     // Generate cache key
     std::string cacheKey = "custom_shader_" + std::to_string(m_desc.materialSlot);
@@ -106,7 +113,8 @@ void MetalCustomShaderPass::createUniformBuffer(MetalDevice& device) {
 
 void MetalCustomShaderPass::bindTextures(MetalDevice& device) {
     // TODO: Bind textures from texture cache
-    // This is a placeholder for the actual texture binding logic
+    // This would use MetalTextureCache to get textures
+    // For now, this is a placeholder
 }
 
 } // namespace metal

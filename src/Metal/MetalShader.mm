@@ -101,6 +101,27 @@ std::shared_ptr<MetalShaderProgram> MetalShader::compileFromSPIRV(
     return nullptr;
 }
 
+std::shared_ptr<MetalShaderProgram> MetalShader::compileFromHLSL(
+    const std::string& vertexSource,
+    const std::string& fragmentSource,
+    const std::string& cacheKey) {
+
+    // Check cache first
+    auto it = m_shaders.find(cacheKey);
+    if (it != m_shaders.end()) {
+        return it->second;
+    }
+
+    // TODO: Use Rust shader bridge to compile HLSL to MSL
+    // This would call rs_shader_compile_program with target="metal_msl"
+    // For now, return nullptr as the bridge integration is not yet complete
+    (void)vertexSource;
+    (void)fragmentSource;
+    (void)cacheKey;
+
+    return nullptr;
+}
+
 std::shared_ptr<MetalShaderProgram> MetalShader::query(const std::string& cacheKey) const {
     auto it = m_shaders.find(cacheKey);
     if (it != m_shaders.end()) {

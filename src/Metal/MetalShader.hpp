@@ -47,6 +47,16 @@ public:
         uint32_t fragmentWordCount,
         const std::string& cacheKey);
 
+    /// Compiles a shader using the Rust shader bridge.
+    /// @param vertexSource HLSL source for vertex function.
+    /// @param fragmentSource HLSL source for fragment function.
+    /// @param cacheKey Unique key for caching.
+    /// @return Compiled shader program, or nullptr on failure.
+    std::shared_ptr<MetalShaderProgram> compileFromHLSL(
+        const std::string& vertexSource,
+        const std::string& fragmentSource,
+        const std::string& cacheKey);
+
     /// Queries the cache for an existing compiled shader.
     std::shared_ptr<MetalShaderProgram> query(const std::string& cacheKey) const;
 
