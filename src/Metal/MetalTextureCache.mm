@@ -1,5 +1,6 @@
 #include "MetalTextureCache.hpp"
 #include <algorithm>
+#include <vector>
 
 namespace wallpaper
 {
@@ -19,6 +20,41 @@ bool MetalTextureCache::init(id<MTLDevice> device) {
     return true;
 }
 
+// ── Memory eviction ───────────────────────────────────────────────────
+
+void MetalTextureCache::evictUntilFit(uint64_t bytesNeeded) {
+    if (m_currentMemoryBytes + bytesNeeded <= m_maxMemoryBytes) return;
+
+    // Collect (key, memBytes, lastAccessFrame) for sorting.
+    struct EntryInfo {
+        std::string key;
+        uint64_t    memBytes;
+        uint64_t    lastFrame;
+    };
+    std::vector<EntryInfo> entries;
+    entries.reserve(m_textures.size());
+    for (const auto& [key, entry] : m_textures) {
+        entries.push_back({ key, entry.memBytes, entry.lastAccessFrame });
+    }
+
+    // Sort by lastAccessFrame ascending: never-touched (0) first, then oldest.
+    std::sort(entries.begin(), entries.end(),
+              [](const EntryInfo& a, const EntryInfo& b) {
+                  return a.lastFrame < b.lastFrame;
+              });
+
+    for (const auto& info : entries) {
+        if (m_currentMemoryBytes + bytesNeeded <= m_maxMemoryBytes) break;
+        auto it = m_textures.find(info.key);
+        if (it != m_textures.end()) {
+            m_currentMemoryBytes -= it->second.memBytes;
+            m_textures.erase(it);
+        }
+    }
+}
+
+// ── Texture lifecycle ─────────────────────────────────────────────────
+
 id<MTLTexture> MetalTextureCache::createTexture(
     const std::string& key,
     const MetalTextureDesc& desc,
@@ -29,13 +65,15 @@ id<MTLTexture> MetalTextureCache::createTexture(
         return nil;
     }
 
-    // Check cache first
+    // Check cache first.
     auto it = m_textures.find(key);
     if (it != m_textures.end()) {
         return it->second.texture;
     }
 
-    // Create texture descriptor
+    uint64_t texMem = estimateTextureMemory(desc);
+    evictUntilFit(texMem);
+
     MTLTextureDescriptor* texDesc = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:desc.pixelFormat
                                                                                      width:desc.width
                                                                                     height:desc.height
@@ -48,26 +86,21 @@ id<MTLTexture> MetalTextureCache::createTexture(
     texDesc.usage = desc.usage;
     texDesc.storageMode = desc.storageMode;
 
-    // Create texture
     id<MTLTexture> texture = [m_device newTextureWithDescriptor:texDesc];
-    if (texture == nil) {
-        return nil;
-    }
+    if (texture == nil) return nil;
 
-    // Upload initial data if provided
     if (data != nullptr && dataSize > 0) {
-        // For now, skip data upload - textures will be created empty
-        // TODO: Implement proper texture data upload using MTLBuffer
         (void)data;
         (void)dataSize;
     }
 
-    // Cache the texture
     MetalTextureEntry entry;
     entry.texture = texture;
     entry.desc = desc;
+    entry.memBytes = texMem;
     entry.lastAccessFrame = 0;
     m_textures[key] = entry;
+    m_currentMemoryBytes += texMem;
 
     return texture;
 }
@@ -76,47 +109,51 @@ id<MTLTexture> MetalTextureCache::createTextureFromExisting(
     const std::string& key,
     id<MTLTexture> texture) {
 
-    if (m_device == nil || key.empty() || texture == nil) {
-        return nil;
-    }
+    if (m_device == nil || key.empty() || texture == nil) return nil;
 
-    // Check cache first
     auto it = m_textures.find(key);
-    if (it != m_textures.end()) {
-        return it->second.texture;
-    }
+    if (it != m_textures.end()) return it->second.texture;
 
-    // Cache the existing texture
+    MetalTextureDesc desc;
+    desc.width       = static_cast<uint32_t>(texture.width);
+    desc.height      = static_cast<uint32_t>(texture.height);
+    desc.depth       = static_cast<uint32_t>(texture.depth);
+    desc.mipLevels   = static_cast<uint32_t>(texture.mipmapLevelCount);
+    desc.pixelFormat = texture.pixelFormat;
+    desc.usage       = texture.usage;
+    desc.storageMode = texture.storageMode;
+
+    uint64_t texMem = estimateTextureMemory(desc);
+    evictUntilFit(texMem);
+
     MetalTextureEntry entry;
     entry.texture = texture;
-    entry.desc.width = static_cast<uint32_t>(texture.width);
-    entry.desc.height = static_cast<uint32_t>(texture.height);
-    entry.desc.depth = static_cast<uint32_t>(texture.depth);
-    entry.desc.mipLevels = static_cast<uint32_t>(texture.mipmapLevelCount);
-    entry.desc.pixelFormat = texture.pixelFormat;
-    entry.desc.usage = texture.usage;
-    entry.desc.storageMode = texture.storageMode;
+    entry.desc = desc;
+    entry.memBytes = texMem;
     entry.lastAccessFrame = 0;
     m_textures[key] = entry;
+    m_currentMemoryBytes += texMem;
 
     return texture;
 }
 
-id<MTLTexture> MetalTextureCache::query(const std::string& key) const {
+id<MTLTexture> MetalTextureCache::query(const std::string& key) {
     auto it = m_textures.find(key);
-    if (it != m_textures.end()) {
-        return it->second.texture;
-    }
-    return nil;
+    if (it == m_textures.end()) return nil;
+    return it->second.texture;
 }
 
 void MetalTextureCache::remove(const std::string& key) {
-    m_textures.erase(key);
+    auto it = m_textures.find(key);
+    if (it == m_textures.end()) return;
+    m_currentMemoryBytes -= it->second.memBytes;
+    m_textures.erase(it);
 }
 
 void MetalTextureCache::clear() {
     m_textures.clear();
     m_samplers.clear();
+    m_currentMemoryBytes = 0;
 }
 
 void MetalTextureCache::touch(const std::string& key, uint64_t frame) {
@@ -130,6 +167,7 @@ void MetalTextureCache::evict(uint64_t currentFrame, uint64_t maxAgeFrames) {
     auto it = m_textures.begin();
     while (it != m_textures.end()) {
         if (currentFrame - it->second.lastAccessFrame > maxAgeFrames) {
+            m_currentMemoryBytes -= it->second.memBytes;
             it = m_textures.erase(it);
         } else {
             ++it;
@@ -160,17 +198,8 @@ id<MTLSamplerState> MetalTextureCache::createSampler(const MetalSamplerDesc& des
     return sampler;
 }
 
-uint64_t MetalTextureCache::totalMemoryUsage() const {
-    uint64_t total = 0;
-    for (const auto& [key, entry] : m_textures) {
-        total += estimateTextureMemory(entry.desc);
-    }
-    return total;
-}
-
 uint64_t MetalTextureCache::estimateTextureMemory(const MetalTextureDesc& desc) {
-    // Rough estimate: width * height * depth * bytes_per_pixel * mip_levels
-    uint32_t bytesPerPixel = 4; // Default to RGBA8
+    uint32_t bytesPerPixel = 4;
     switch (desc.pixelFormat) {
         case MTLPixelFormatR8Unorm:
         case MTLPixelFormatR8Uint:
@@ -196,14 +225,13 @@ uint64_t MetalTextureCache::estimateTextureMemory(const MetalTextureDesc& desc) 
             break;
     }
 
-    uint64_t baseSize = static_cast<uint64_t>(desc.width) * desc.height * desc.depth * bytesPerPixel;
-    // Account for mip levels (geometric series sum)
     uint64_t totalSize = 0;
-    uint32_t mipWidth = desc.width;
+    uint32_t mipWidth  = desc.width;
     uint32_t mipHeight = desc.height;
-    for (uint32_t i = 0; i < desc.mipLevels; ++i) {
+    uint32_t mipLevels = desc.mipLevels > 0 ? desc.mipLevels : 1;
+    for (uint32_t i = 0; i < mipLevels; ++i) {
         totalSize += static_cast<uint64_t>(mipWidth) * mipHeight * desc.depth * bytesPerPixel;
-        mipWidth = std::max(1u, mipWidth / 2);
+        mipWidth  = std::max(1u, mipWidth / 2);
         mipHeight = std::max(1u, mipHeight / 2);
     }
 

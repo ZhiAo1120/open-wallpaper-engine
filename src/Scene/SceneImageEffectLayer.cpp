@@ -1,6 +1,8 @@
 #include "SceneImageEffectLayer.h"
 #include "SceneNode.h"
 
+#include <cassert>
+
 #include "SpecTexs.hpp"
 #include "Core/StringHelper.hpp"
 

@@ -534,6 +534,8 @@ private:
         m_frame = frame;
         m_duration_seconds = ProbeDurationSeconds(format_context, video_stream);
         m_frame_duration_seconds = ProbeFrameDurationSeconds(video_stream);
+        m_payload.clear();
+        m_payload.shrink_to_fit();
         return true;
     }
 

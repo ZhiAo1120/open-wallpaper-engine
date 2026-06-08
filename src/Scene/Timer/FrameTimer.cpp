@@ -59,8 +59,8 @@ void FrameTimer::ResetFrameTiming() {
 }
 
 void FrameTimer::SetRequiredFps(u16 value) {
-    m_req_fps             = value;
-    microseconds ideatime = milliseconds(1000 / m_req_fps);
+    m_req_fps             = value == 0 ? 1 : value;
+    microseconds ideatime = microseconds(1000000 / m_req_fps);
     m_ideatime            = ideatime;
     ResetFrameTiming();
 }

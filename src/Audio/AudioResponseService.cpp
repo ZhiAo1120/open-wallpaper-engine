@@ -1,5 +1,6 @@
 #include "Audio/AudioResponseService.h"
 #include "AudioResponseAnalyzerVdsp.hpp"
+#include "PortableJThread.hpp"
 
 #include <algorithm>
 #include <array>
@@ -31,7 +32,7 @@ struct AudioResponseState
     std::mutex mutex;
     std::condition_variable condition;
     std::vector<float> fifo;
-    std::jthread worker;
+    compat::jthread worker;
     bool worker_started { false };
     AudioSpectrumSnapshot snapshot {};
     std::chrono::steady_clock::time_point last_submit_time {};
@@ -96,7 +97,7 @@ bool InputStreamIsStale(std::chrono::steady_clock::time_point now)
            (now - g_state.last_submit_time) > kSnapshotStaleAfter;
 }
 
-void WorkerMain(std::stop_token stop_token)
+void WorkerMain(compat::stop_token stop_token)
 {
     while (!stop_token.stop_requested()) {
         std::array<float, kFftSize> block {};
@@ -163,7 +164,7 @@ void EnsureWorkerStartedLocked()
         return;
     }
 
-    g_state.worker = std::jthread(WorkerMain);
+    g_state.worker = compat::jthread(WorkerMain);
     g_state.worker_started = true;
 }
 
@@ -260,7 +261,7 @@ AudioSpectrumSnapshot CurrentAudioSpectrumSnapshot()
 
 void ResetAudioResponseServiceForTesting()
 {
-    std::jthread worker;
+    compat::jthread worker;
     {
         std::lock_guard<std::mutex> lock(g_state.mutex);
         worker = std::move(g_state.worker);
@@ -281,7 +282,7 @@ void ResetAudioResponseServiceForTesting()
 #ifdef WESCENE_BUILD_TESTS
 void StopAudioResponseWorkerAndMarkInputStaleForTesting()
 {
-    std::jthread worker;
+    compat::jthread worker;
     {
         std::lock_guard<std::mutex> lock(g_state.mutex);
         worker = std::move(g_state.worker);
@@ -304,7 +305,7 @@ void SubmitStaleMonoAudioFramesToWorkerForTesting(
     const float* pcm_frames,
     size_t frame_count)
 {
-    std::jthread worker;
+    compat::jthread worker;
     {
         std::lock_guard<std::mutex> lock(g_state.mutex);
         worker = std::move(g_state.worker);
