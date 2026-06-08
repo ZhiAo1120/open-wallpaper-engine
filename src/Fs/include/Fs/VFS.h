@@ -4,6 +4,8 @@
 #include <string>
 #include <tuple>
 #include <algorithm>
+#include <filesystem>
+#include <optional>
 #include "Fs.h"
 #include "Utils/Logging.h"
 #include "Core/NoCopyMove.hpp"
@@ -97,6 +99,18 @@ public:
 		}
 		return false;
 	}
+    std::optional<std::filesystem::path> ResolvePhysicalPath(std::string_view path) const {
+        for (auto iter = m_mountedFss.rbegin(); iter < m_mountedFss.rend(); iter++) {
+            auto& el = *iter;
+            if (MountedFs::InMountPoint(el.mountPoint, path)) {
+                auto mpath = MountedFs::GetPathInMount(el.mountPoint, path);
+                if (el.fs->Contains(mpath)) {
+                    return el.fs->ResolvePhysicalPath(mpath);
+                }
+            }
+        }
+        return std::nullopt;
+    }
 private:
 	std::vector<MountedFs> m_mountedFss;
 };

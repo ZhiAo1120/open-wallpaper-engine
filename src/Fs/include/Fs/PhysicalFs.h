@@ -26,6 +26,11 @@ public:
         std::filesystem::create_directories(full_path.parent_path());
         return CreateCBinaryStreamW(full_path.native());
     }
+    std::optional<std::filesystem::path> ResolvePhysicalPath(std::string_view path) const override {
+        auto fullpath = m_path / path.substr(1);
+        if (!std::filesystem::exists(fullpath)) return std::nullopt;
+        return fullpath;
+    }
 
 private:
     std::string FullPath(std::string_view path) const {

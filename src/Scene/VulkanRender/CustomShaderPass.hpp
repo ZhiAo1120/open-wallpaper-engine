@@ -55,6 +55,13 @@ public:
         std::vector<std::string>   vk_texture_image_keys;
         std::vector<TextureBinding> vk_texture_bindings;
         std::vector<bool>          video_textures;
+        struct VideoTextureUpdateState {
+            std::string texture_key;
+            double      last_update_absolute_seconds { 0.0 };
+            double      next_update_absolute_seconds { 0.0 };
+            bool        initialized { false };
+        };
+        std::vector<VideoTextureUpdateState> video_update_states;
         ImageParameters            vk_output;
         ImageParameters            vk_output_msaa;
 

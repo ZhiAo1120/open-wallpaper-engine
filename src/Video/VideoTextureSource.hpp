@@ -44,6 +44,7 @@ public:
     virtual bool refreshFrame(std::string* error) = 0;
     [[nodiscard]] virtual VideoTextureFrame currentFrame() const = 0;
     [[nodiscard]] virtual double durationSeconds() const = 0;
+    [[nodiscard]] virtual double frameDurationSeconds() const = 0;
     [[nodiscard]] virtual double playbackSeconds() const = 0;
     [[nodiscard]] virtual uint64_t loopCount() const = 0;
 };

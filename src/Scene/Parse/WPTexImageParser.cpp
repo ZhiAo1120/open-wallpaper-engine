@@ -317,8 +317,12 @@ std::optional<std::vector<char>> LoadLooseAssetPayload(fs::VFS& vfs, std::string
     auto stream = vfs.Open(path);
     if (!stream) return std::nullopt;
 
-    const std::string payload = stream->ReadAllStr();
-    return std::vector<char>(payload.begin(), payload.end());
+    if (stream->Size() <= 0) return std::nullopt;
+    std::vector<char> payload(static_cast<std::size_t>(stream->Size()));
+    if (!payload.empty()) {
+        stream->Read(payload.data(), payload.size());
+    }
+    return payload;
 }
 
 std::filesystem::path WriteVideoPayloadToTemp(
@@ -723,13 +727,39 @@ std::shared_ptr<Image> WPTexImageParser::ParseLooseAsset(const std::string& name
     const auto candidate = ResolveLooseAsset(*m_vfs, name);
     if (!candidate.has_value()) return nullptr;
 
-    const auto payload = LoadLooseAssetPayload(*m_vfs, candidate->path);
-    if (!payload.has_value() || payload->empty()) return nullptr;
-
     auto image = std::make_shared<Image>();
     image->key = name;
 
     if (candidate->isVideo) {
+        if (const auto physical_path = m_vfs->ResolvePhysicalPath(candidate->path);
+            physical_path.has_value()) {
+            video::VideoMetadata metadata;
+            std::string          error;
+            if (!video::ProbeVideoFileMetadata(physical_path->string(), &metadata, &error)) {
+                LOG_ERROR("failed to probe video metadata for \"%s\": %s",
+                          candidate->path.c_str(),
+                          error.c_str());
+                return nullptr;
+            }
+
+            image->header = BuildLooseAssetHeader(
+                static_cast<int32_t>(metadata.width),
+                static_cast<int32_t>(metadata.height),
+                true,
+                ImageType::UNKNOWN,
+                metadata.duration_seconds);
+            image->videoPath = physical_path->string();
+
+            Image::Slot slot;
+            slot.width = static_cast<int32_t>(metadata.width);
+            slot.height = static_cast<int32_t>(metadata.height);
+            image->slots.push_back(std::move(slot));
+            return image;
+        }
+
+        const auto payload = LoadLooseAssetPayload(*m_vfs, candidate->path);
+        if (!payload.has_value() || payload->empty()) return nullptr;
+
         const auto metadata = ProbeVideoMetadataFromPayload(
             name,
             std::filesystem::path(candidate->path).extension().string(),
@@ -759,6 +789,9 @@ std::shared_ptr<Image> WPTexImageParser::ParseLooseAsset(const std::string& name
         image->slots.push_back(std::move(slot));
         return image;
     }
+
+    const auto payload = LoadLooseAssetPayload(*m_vfs, candidate->path);
+    if (!payload.has_value() || payload->empty()) return nullptr;
 
     int width = 0;
     int height = 0;
@@ -802,10 +835,28 @@ ImageHeader WPTexImageParser::ParseLooseAssetHeader(const std::string& name)
     const auto candidate = ResolveLooseAsset(*m_vfs, name);
     if (!candidate.has_value()) return {};
 
-    const auto payload = LoadLooseAssetPayload(*m_vfs, candidate->path);
-    if (!payload.has_value() || payload->empty()) return {};
-
     if (candidate->isVideo) {
+        if (const auto physical_path = m_vfs->ResolvePhysicalPath(candidate->path);
+            physical_path.has_value()) {
+            video::VideoMetadata metadata;
+            std::string          error;
+            if (!video::ProbeVideoFileMetadata(physical_path->string(), &metadata, &error)) {
+                LOG_ERROR("failed to probe video metadata for \"%s\": %s",
+                          candidate->path.c_str(),
+                          error.c_str());
+                return {};
+            }
+            return BuildLooseAssetHeader(
+                static_cast<int32_t>(metadata.width),
+                static_cast<int32_t>(metadata.height),
+                true,
+                ImageType::UNKNOWN,
+                metadata.duration_seconds);
+        }
+
+        const auto payload = LoadLooseAssetPayload(*m_vfs, candidate->path);
+        if (!payload.has_value() || payload->empty()) return {};
+
         const auto metadata = ProbeVideoMetadataFromPayload(
             name,
             std::filesystem::path(candidate->path).extension().string(),
@@ -818,6 +869,9 @@ ImageHeader WPTexImageParser::ParseLooseAssetHeader(const std::string& name)
             ImageType::UNKNOWN,
             metadata->duration_seconds);
     }
+
+    const auto payload = LoadLooseAssetPayload(*m_vfs, candidate->path);
+    if (!payload.has_value() || payload->empty()) return {};
 
     int width = 0;
     int height = 0;

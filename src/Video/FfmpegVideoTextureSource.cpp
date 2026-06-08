@@ -230,6 +230,10 @@ public:
             m_initial_error = "image is not marked as a video texture";
             return;
         }
+        if (!image.videoPath.empty()) {
+            m_media_path = image.videoPath;
+            return;
+        }
         if (image.slots.empty() || image.slots.front().mipmaps.empty()) {
             m_initial_error = "video texture has no mip payload";
             return;
@@ -404,6 +408,12 @@ public:
         return m_duration_seconds;
     }
 
+    [[nodiscard]] double frameDurationSeconds() const
+    {
+        std::lock_guard lock(m_mutex);
+        return m_frame_duration_seconds;
+    }
+
     [[nodiscard]] double playbackSeconds() const
     {
         std::lock_guard lock(m_mutex);
@@ -429,8 +439,12 @@ private:
 
     bool openDecoder(std::string* error)
     {
-        m_media_path = WriteVideoPayloadToTemp(m_debug_label, m_payload, error);
-        if (m_media_path.empty()) return false;
+        if (m_media_path.empty()) {
+            m_media_path = WriteVideoPayloadToTemp(m_debug_label, m_payload, error);
+            if (m_media_path.empty()) return false;
+        } else if (!std::filesystem::exists(m_media_path)) {
+            return SetError(error, "video media file does not exist: " + m_media_path.string());
+        }
 
         AVFormatContext* format_context = nullptr;
         if (const int result = avformat_open_input(&format_context, m_media_path.c_str(), nullptr, nullptr);
@@ -915,6 +929,11 @@ VideoTextureFrame FfmpegVideoTextureSource::currentFrame() const
 double FfmpegVideoTextureSource::durationSeconds() const
 {
     return m_impl->durationSeconds();
+}
+
+double FfmpegVideoTextureSource::frameDurationSeconds() const
+{
+    return m_impl->frameDurationSeconds();
 }
 
 double FfmpegVideoTextureSource::playbackSeconds() const

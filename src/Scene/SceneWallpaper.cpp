@@ -180,6 +180,7 @@ std::shared_ptr<wallpaper::Image> LoadVideoProjectImage(const std::filesystem::p
 
     auto image                      = std::make_shared<wallpaper::Image>();
     image->key                      = std::string(file_name);
+    image->videoPath                = media_path.string();
     image->header.isVideo           = true;
     image->header.videoAudioEnabled = true;
     image->header.count             = 1;
@@ -207,15 +208,6 @@ std::shared_ptr<wallpaper::Image> LoadVideoProjectImage(const std::filesystem::p
     mip.width  = slot.width;
     mip.height = slot.height;
     mip.size   = static_cast<isize>(size);
-    mip.data   = wallpaper::ImageDataPtr(new uint8_t[static_cast<size_t>(size)], [](uint8_t* data) {
-        delete[] data;
-    });
-
-    if (! input.read(reinterpret_cast<char*>(mip.data.get()), size)) {
-        SetError(error,
-                 std::string("failed to read video project media file: ") + media_path.string());
-        return nullptr;
-    }
 
     slot.mipmaps.push_back(std::move(mip));
     image->slots.push_back(std::move(slot));

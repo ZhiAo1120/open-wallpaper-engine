@@ -17,6 +17,7 @@ public:
     bool refreshFrame(std::string* error) override;
     [[nodiscard]] VideoTextureFrame currentFrame() const override;
     [[nodiscard]] double durationSeconds() const override;
+    [[nodiscard]] double frameDurationSeconds() const override;
     [[nodiscard]] double playbackSeconds() const override;
     [[nodiscard]] uint64_t loopCount() const override;
 

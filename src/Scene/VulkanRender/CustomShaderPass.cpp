@@ -18,6 +18,7 @@
 #include <cassert>
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <limits>
 #include <string>
 
@@ -26,6 +27,45 @@ using namespace wallpaper::vulkan;
 namespace
 {
 using wallpaper::usize;
+
+bool ShouldSkipVideoTextureUpdate(
+    const wallpaper::video::VideoPlaybackState& playback_state,
+    double                                      native_frame_duration,
+    std::string_view                            texture_key,
+    const wallpaper::vulkan::CustomShaderPass::Desc::VideoTextureUpdateState& state) {
+    if (! state.initialized || state.texture_key != texture_key) return false;
+    if (! (native_frame_duration > 0.0) || ! std::isfinite(native_frame_duration)) return false;
+
+    const double desired_absolute_seconds =
+        std::max(0.0, playback_state.scene_elapsed_seconds);
+    if (desired_absolute_seconds + native_frame_duration < state.last_update_absolute_seconds) {
+        return false;
+    }
+    if (playback_state.paused) return true;
+
+    const double slack = std::min(0.001, native_frame_duration * 0.1);
+    return desired_absolute_seconds + slack < state.next_update_absolute_seconds;
+}
+
+void MarkVideoTextureUpdated(
+    const wallpaper::video::VideoPlaybackState& playback_state,
+    double                                      native_frame_duration,
+    std::string_view                            texture_key,
+    wallpaper::vulkan::CustomShaderPass::Desc::VideoTextureUpdateState& state) {
+    const double desired_absolute_seconds =
+        std::max(0.0, playback_state.scene_elapsed_seconds);
+    state.texture_key                  = std::string(texture_key);
+    state.last_update_absolute_seconds = desired_absolute_seconds;
+    state.initialized                  = true;
+
+    if (! (native_frame_duration > 0.0) || ! std::isfinite(native_frame_duration)) {
+        state.next_update_absolute_seconds = desired_absolute_seconds;
+        return;
+    }
+
+    const double frame_index = std::floor(desired_absolute_seconds / native_frame_duration);
+    state.next_update_absolute_seconds = (frame_index + 1.0) * native_frame_duration;
+}
 
 } // namespace
 
@@ -215,6 +255,7 @@ void CustomShaderPass::prepare(Scene& scene, const Device& device, RenderingReso
     m_desc.vk_textures.resize(m_desc.textures.size());
     m_desc.vk_texture_image_keys.resize(m_desc.textures.size());
     m_desc.video_textures.resize(m_desc.textures.size(), false);
+    m_desc.video_update_states.resize(m_desc.textures.size());
     for (usize i = 0; i < m_desc.textures.size(); i++) {
         auto& tex_name = m_desc.textures[i];
         if (tex_name.empty()) continue;
@@ -497,6 +538,7 @@ void CustomShaderPass::prepare(Scene& scene, const Device& device, RenderingReso
     auto& sprites         = m_desc.sprites_map;
     auto& textures        = m_desc.textures;
     auto& video_textures  = m_desc.video_textures;
+    auto& video_update_states = m_desc.video_update_states;
     auto& vk_textures     = m_desc.vk_textures;
     auto& vk_texture_image_keys = m_desc.vk_texture_image_keys;
     auto  camera_override = m_desc.camera_override;
@@ -511,6 +553,7 @@ void CustomShaderPass::prepare(Scene& scene, const Device& device, RenderingReso
                         device_ptr,
                         &textures,
                         &video_textures,
+                        &video_update_states,
                         runtime_images,
                         &sprites,
                         &vk_textures,
@@ -551,7 +594,10 @@ void CustomShaderPass::prepare(Scene& scene, const Device& device, RenderingReso
         }
         for (usize i = 0; i < video_textures.size(); ++i) {
             if (! video_textures[i]) continue;
-            if (i >= textures.size() || i >= vk_textures.size()) continue;
+            if (i >= textures.size() || i >= vk_textures.size() ||
+                i >= video_update_states.size()) {
+                continue;
+            }
 
             std::string                          error;
             wallpaper::video::VideoPlaybackState playback_state =
@@ -561,12 +607,20 @@ void CustomShaderPass::prepare(Scene& scene, const Device& device, RenderingReso
             if (scene_ptr->runtime == nullptr) {
                 playback_state.scene_elapsed_seconds = scene_ptr->elapsingTime;
             }
+            const double native_frame_duration =
+                device_ptr->tex_cache().GetVideoFrameDuration(textures[i]);
+            if (ShouldSkipVideoTextureUpdate(
+                    playback_state, native_frame_duration, textures[i], video_update_states[i])) {
+                continue;
+            }
             if (! device_ptr->tex_cache().UpdateVideoFrame(
                     textures[i], playback_state, &vk_textures[i], &error)) {
                 LOG_ERROR("failed to update video texture \"%s\": %s",
                           textures[i].c_str(),
                           error.c_str());
             } else {
+                MarkVideoTextureUpdated(
+                    playback_state, native_frame_duration, textures[i], video_update_states[i]);
                 if (scene_ptr->runtime != nullptr) {
                     scene_ptr->runtime->SetVideoTextureDuration(
                         textures[i], device_ptr->tex_cache().GetVideoDuration(textures[i]));
@@ -961,6 +1015,7 @@ void CustomShaderPass::destory(const Device&, RenderingResources& rr) {
     m_desc.vk_textures.clear();
     m_desc.vk_texture_bindings.clear();
     m_desc.vk_texture_image_keys.clear();
+    m_desc.video_update_states.clear();
     m_desc.vk_output = {};
     m_desc.vk_output_msaa = {};
     m_desc.video_textures.clear();

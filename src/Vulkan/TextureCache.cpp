@@ -1230,6 +1230,15 @@ double TextureCache::GetVideoDuration(std::string_view key) const {
     return iterator->second->source->durationSeconds();
 }
 
+double TextureCache::GetVideoFrameDuration(std::string_view key) const {
+    const auto iterator = m_video_tex_map.find(std::string(key));
+    if (iterator == m_video_tex_map.end() || iterator->second == nullptr ||
+        ! iterator->second->source) {
+        return 0.0;
+    }
+    return iterator->second->source->frameDurationSeconds();
+}
+
 bool TextureCache::CanReuseVideoFrameImport(const video::VideoTextureFrame& frame) const {
     return frame.io_surface != nullptr && frame.plane_count <= 1;
 }

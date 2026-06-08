@@ -68,6 +68,7 @@ struct Image : NoCopy, NoMove {
     ImageHeader       header;
     std::vector<Slot> slots;
     std::string       key;
+    std::string       videoPath;
 };
 
 } // namespace wallpaper

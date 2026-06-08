@@ -107,6 +107,7 @@ public:
     [[nodiscard]] VideoTextureSubmissionStats VideoSubmissionStats() const;
     void                                      ResetVideoSubmissionStats();
     double                           GetVideoDuration(std::string_view key) const;
+    double                           GetVideoFrameDuration(std::string_view key) const;
     bool UpdateVideoFrame(std::string_view key, const video::VideoPlaybackState& playback_state,
                           ImageSlotsRef* out, std::string* error = nullptr);
     bool ReadbackImageSample(const ImageParameters& image, uint32_t x, uint32_t y, uint32_t width,
